@@ -14,6 +14,8 @@ var xCollisionHorizontal = [];
 var zCollisionHorizontal = [];
 var prevX;
 var prevZ;
+var throughWall = false;
+var throughWallUse = 1;
 
 var xCollisionVertical = [];
 var zCollisionVertical = [];
@@ -31,8 +33,8 @@ var texGolf;
 var texLoft;
 
 // Breytur fyrir hreyfingu áhorfanda
-var userXPos = 0.0;                // Initial position of user
-var userZPos = 5.0;                //   in (x, z) coordinates, y is fixed
+var userXPos = -2;                // Initial position of user
+var userZPos = 9.0;                //   in (x, z) coordinates, y is fixed
 var userIncr = 0.1;                // Size of forward/backward step
 var userAngle = 270.0;             // Direction of the user in degrees
 var userXDir = 0.0;                // X-coordinate of heading
@@ -58,9 +60,9 @@ var vertices = [
     vec4( -0.75,  0.0, 0.0, 1.0 ),
 // Hnútar gólfsins (strax á eftir)
     vec4( -5.0,  0.0, 10.0, 1.0 ),
-    vec4(  5.0,  0.0, 10.0, 1.0 ),
-    vec4(  5.0,  0.0,  0.0, 1.0 ),
-    vec4(  5.0,  0.0,  0.0, 1.0 ),
+    vec4(  10.0,  0.0, 10.0, 1.0 ),
+    vec4(  10.0,  0.0,  0.0, 1.0 ),
+    vec4(  10.0,  0.0,  0.0, 1.0 ),
     vec4( -5.0,  0.0,  0.0, 1.0 ),
     vec4( -5.0,  0.0, 10.0, 1.0 )
 ];
@@ -106,7 +108,7 @@ window.onload = function init() {
 
     canvas = document.getElementById( "gl-canvas" );
 
-    maze = readTextFile("maze.txt");
+    maze = readTextFile("maze4.txt");
     console.log(maze);  
     console.log(maze.length);
     //maze = maze.replace(/(\r\n\t|\n|\r\t)/gm,"");
@@ -204,7 +206,7 @@ window.onload = function init() {
             origX = e.clientX;
         }
     } );
-    
+    /*
     // Event listener for keyboard
      window.addEventListener("keydown", function(e){
          switch( e.keyCode ) {
@@ -264,23 +266,152 @@ window.onload = function init() {
                     userZPos = prevZ
                 console.log("Xpos: " + userXPos);
                 console.log("Zpos: " + userZPos);
-                console.log(xCollisionHorizontal);
                 break;
+            case 86:    // v
+                if(throughWallUse > 0){
+                    throughWall = true;
+                    throughWallUse = 0;
+                }
+                break;
+            case 81: //q 
+                userAngle -= 5;
+                userAngle %= 360.0;
+                userXDir = Math.cos( radians(userAngle) );
+                userZDir = Math.sin( radians(userAngle) );
+                origX = e.clientX;
+                break;
+            case 69: //e 
+                userAngle += 5;
+                userAngle %= 360.0;
+                userXDir = Math.cos( radians(userAngle) );
+                userZDir = Math.sin( radians(userAngle) );
+                origX = e.clientX;
+                break;
+        
          }
      }  );  
+     */
 
     render();
  
 }
 
+//initKeyboardHandlers();
+var g_keys = [];
+
+// When a key is pressed
+function handleKeydown() {
+
+        // W
+    if (g_keys[87]) {
+      prevX = userXPos;
+      prevZ = userZPos;
+      if(!checkCollisionX(userXPos, userZPos) && !checkCollisionZ(userXPos, userZPos)){
+          userXPos += (userIncr * userXDir)/4;
+          userZPos += (userIncr * userZDir)/4;
+      }
+      if(checkCollisionX(userXPos, userZPos))
+          userXPos = prevX
+      if(checkCollisionZ(userXPos, userZPos))
+          userZPos = prevZ
+      console.log("Xpos: " + userXPos);
+      console.log("Zpos: " + userZPos);
+    }
+    // A
+    if (g_keys[65]) {
+      userAngle -= 1;
+      userAngle %= 360.0;
+      userXDir = Math.cos( radians(userAngle) );
+      userZDir = Math.sin( radians(userAngle) );
+    }
+    // S
+    if (g_keys[83]) {
+      prevX = userXPos;
+      prevZ = userZPos;
+      if(!checkCollisionX(userXPos, userZPos) && !checkCollisionZ(userXPos, userZPos)){
+          userXPos -= (userIncr * userXDir)/4;
+          userZPos -= (userIncr * userZDir)/4;
+      }
+      if(checkCollisionX(userXPos, userZPos))
+          userXPos = prevX
+      if(checkCollisionZ(userXPos, userZPos))
+          userZPos = prevZ
+      console.log("Xpos: " + userXPos);
+      console.log("Zpos: " + userZPos);
+    }
+    // D
+    if (g_keys[68]) {
+      userAngle += 1;
+      userAngle %= 360.0;
+      userXDir = Math.cos( radians(userAngle) );
+      userZDir = Math.sin( radians(userAngle) );
+    }
+    
+    // Q
+    if (g_keys[81]) {
+      prevX = userXPos;
+      prevZ = userZPos;
+      if(!checkCollisionX(userXPos, userZPos) && !checkCollisionZ(userXPos, userZPos)){
+          userXPos += (userIncr * userZDir)/4;
+          userZPos -= (userIncr * userXDir)/4;
+      }
+      if(checkCollisionX(userXPos, userZPos))
+          userXPos = prevX
+      if(checkCollisionZ(userXPos, userZPos))
+          userZPos = prevZ
+      console.log("Xpos: " + userXPos);
+      console.log("Zpos: " + userZPos);
+      
+    }
+  // E
+    if (g_keys[69]) {
+      prevX = userXPos;
+      prevZ = userZPos;
+      if(!checkCollisionX(userXPos, userZPos) && !checkCollisionZ(userXPos, userZPos)){
+          userXPos -= (userIncr * userZDir)/4;
+          userZPos += (userIncr * userXDir)/4;
+      }
+      if(checkCollisionX(userXPos, userZPos))
+          userXPos = prevX
+      if(checkCollisionZ(userXPos, userZPos))
+          userZPos = prevZ
+      console.log("Xpos: " + userXPos);
+      console.log("Zpos: " + userZPos);
+      
+    }
+    // F
+    if (g_keys[70]) {
+      if(throughWallUse > 0){
+          throughWall = true;
+          throughWallUse = 0;
+      }
+    }
+    setTimeout(handleKeydown, 10);
+}
+
+// When the key is released
+function handleKeyup(evt) {
+  g_keys[evt.keyCode] = false;
+}
+ 
+window.addEventListener('keydown',function(e){
+    g_keys[e.keyCode] = true;
+},true);    
+window.addEventListener('keyup',function(e){
+    g_keys[e.keyCode] = false;
+},true);
+
+handleKeydown();
+
 function checkCollisionX(x, z){
 
     for(var i = 0; i < xCollisionVertical.length; i = i+1){
-        //console.log(xCollisionVertical[i])
-        //console.log(Math.abs(x - xCollisionVertical[i]))
-        //console.log(Math.abs(x - xCollisionVertical[i]))
-        if( (Math.abs(x - xCollisionVertical[i]) < 0.3 && z < zCollisionVertical[i] + 0.75 && z > zCollisionVertical[i] - 0.75))
-            return true;
+        if( (Math.abs(x - xCollisionVertical[i]) < 0.3 && z < zCollisionVertical[i] + 0.75 && z > zCollisionVertical[i] - 0.75)){
+            if(throughWall === false)
+                return true;
+            else 
+                setTimeout(function(){ throughWall = false }, 1500);
+    }
 
     }
 
@@ -290,9 +421,12 @@ function checkCollisionX(x, z){
 function checkCollisionZ(x, z){
 
     for(var i = 0; i < zCollisionHorizontal.length; i = i+1){
-        console.log(Math.abs(z - zCollisionHorizontal[i]))
-        if( (Math.abs(z - zCollisionHorizontal[i]) < 0.3 && x < xCollisionHorizontal[i] + 0.75 && x > xCollisionHorizontal[i] - 0.75))
-            return true;
+        if((Math.abs(z - zCollisionHorizontal[i]) < 0.3 && x < xCollisionHorizontal[i] + 0.75 && x > xCollisionHorizontal[i] - 0.75)){
+            if(throughWall === false)
+                return true;
+            else 
+                setTimeout(function(){ throughWall = false }, 1500);
+    }
     }
 
     return false;
@@ -307,10 +441,10 @@ function drawMaze(){
     var xOffset = -4.25;
     var yOffset = 0.0;
 
-    for(var i = 0; i < 63; i = i+1){
-        if(i === 18 || i === 36 || i === 54)
+    for(var i = 0; i < maze.length; i = i+1){
+        if(i === 42 || i === 84 || i === 126 || i === 147)
             yOffset = yOffset + 1.5;
-        if(i % 9 === 0 && i > 1)
+        if(i % 21 === 0 && i > 1)
             xOffset = -4.25;
 
         if(maze[i] === "|"){
@@ -371,6 +505,18 @@ var render = function(){
     gl.drawArrays( gl.TRIANGLES, numVertices, numVertices );
 
     drawMaze();
+
+    if(userZPos < -0.5){
+        alert("Þú vannst!")
+        userXPos = -2;
+        userZPos = 9;
+        g_keys[65] = false;
+        g_keys[68] = false;
+        g_keys[69] = false;
+        g_keys[81] = false;
+        g_keys[83] = false;
+        g_keys[87] = false;
+    }
 
     requestAnimFrame(render);
 }
