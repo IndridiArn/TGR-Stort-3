@@ -16,6 +16,7 @@ var prevX;
 var prevZ;
 var throughWall = false;
 var throughWallUse = 1;
+var minoRandomUse = 1;
 var exitX;
 var exitZ;
 var randNum;
@@ -26,8 +27,8 @@ var playing = false;
 
 var minoX;
 var minoZ;
-var minoDirX = 0.01;
-var minoDirZ = 0.01;
+var minoDirX = 0.015;
+var minoDirZ = 0.015;
 
 var minutes = 0;
 var seconds = 0;
@@ -37,7 +38,7 @@ var millis = 0;
 var xCollisionVertical = [];
 var zCollisionVertical = [];
 
-var numVertices  = 6;
+var numVertices = 6;
 
 var program;
 
@@ -87,9 +88,9 @@ var vertices = [
 // Mynsturhnit fyrir vegg
 var texCoords = [
     vec2(  0.0, 0.0 ),
-    vec2( 1.5, 0.0 ),
-    vec2( 1.5, 1.0 ),
-    vec2( 1.5, 1.0 ),
+    vec2( 1.0, 0.0 ),
+    vec2( 1.0, 1.0 ),
+    vec2( 1.0, 1.0 ),
     vec2(  0.0, 1.0 ),
     vec2(  0.0, 0.0 ),
 // Mynsturhnit fyrir gólf
@@ -129,6 +130,9 @@ window.onload = function init() {
     randMino = (Math.floor(Math.random()*5));
     minoX = minoRandX[randMino];
     minoZ = minoRandZ[randMino];
+
+    //minoX = userXPos - 2;
+    //minoZ = userZPos - 4;
 
     console.log(randNum);
     if(randNum === 1){
@@ -208,6 +212,16 @@ window.onload = function init() {
     gl.bindTexture( gl.TEXTURE_2D, texGolf );
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, golfImage );
+    gl.generateMipmap( gl.TEXTURE_2D );
+    gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR );
+    gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR );
+
+    // Lesa inn og skilgreina mynstur fyrir Mínótárus
+    var minoImage = document.getElementById("MinoImage");
+    texMino = gl.createTexture();
+    gl.bindTexture( gl.TEXTURE_2D, texMino );
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, minoImage );
     gl.generateMipmap( gl.TEXTURE_2D );
     gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR );
     gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR );
@@ -341,6 +355,15 @@ function handleKeydown() {
           document.getElementById("ThroughWall").innerHTML = "Í gegnum vegg: 0";
       }
     }
+    // R
+    if (g_keys[82]) {
+      reset();
+    }
+    // C
+    if (g_keys[67]) {
+      minoRandom();
+      document.getElementById("MinoRandom").innerHTML = "Rugla Mínótárus: 0";
+    }
     setTimeout(handleKeydown, 10);
 }
 
@@ -411,6 +434,41 @@ function minoMove(){
 
 }
 
+function drawMino(){
+
+    var mv = lookAt( vec3(userXPos, 0.5, userZPos), vec3(userXPos+userXDir, 0.5, userZPos+userZDir), vec3(0.0, 1.0, 0.0 ) );
+    gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
+    var mv1 = mv;
+
+    mv = mv1;
+    mv = mult( mv, translate( minoX, 0.0, minoZ-0.3) );
+    mv = mult( mv, scalem( 0.4, 0.7, 0.7) );
+    gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
+    gl.bindTexture( gl.TEXTURE_2D, texMino );
+    gl.drawArrays( gl.TRIANGLES, 0, numVertices );
+    mv = mv1;
+    mv = mult( mv, translate( minoX, 0.0, minoZ+0.3) );
+    mv = mult( mv, scalem( 0.4, 0.7, 0.7) );
+    gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
+    gl.bindTexture( gl.TEXTURE_2D, texMino );
+    gl.drawArrays( gl.TRIANGLES, 0, numVertices );
+    mv = mv1;
+    mv = mult( mv, translate( minoX+0.3, 0.0, minoZ) );
+    mv = mult( mv, rotateY( -90.0 ) );
+    mv = mult( mv, scalem( 0.4, 0.7, 0.7) );
+    gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
+    gl.bindTexture( gl.TEXTURE_2D, texMino );
+    gl.drawArrays( gl.TRIANGLES, 0, numVertices );
+    mv = mv1;
+    mv = mult( mv, translate( minoX-0.3, 0.0, minoZ) );
+    mv = mult( mv, rotateY( -90.0 ) );
+    mv = mult( mv, scalem( 0.4, 0.7, 0.7) );
+    gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
+    gl.bindTexture( gl.TEXTURE_2D, texMino );
+    gl.drawArrays( gl.TRIANGLES, 0, numVertices );
+
+}
+
 function drawMaze(){
 
     var mv = lookAt( vec3(userXPos, 0.5, userZPos), vec3(userXPos+userXDir, 0.5, userZPos+userZDir), vec3(0.0, 1.0, 0.0 ) );
@@ -420,11 +478,6 @@ function drawMaze(){
     var xOffset = -4.25;
     var yOffset = 0.0;
 
-    mv = mv1;
-    mv = mult( mv, translate( minoX, 0.0, minoZ) );
-    gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
-    gl.bindTexture( gl.TEXTURE_2D, texVegg );
-    gl.drawArrays( gl.TRIANGLES, 0, numVertices );
 
     for(var i = 0; i < maze.length; i = i+1){
         if(i % 70 === 0)
@@ -488,14 +541,58 @@ function timer() {
 
 timer();
 
+function minoRandom() {
+    if(minoRandomUse > 0){
+        randMino = (Math.floor(Math.random()*5));
+        minoX = minoRandX[randMino];
+        minoZ = minoRandZ[randMino];
+
+        minoRandomUse -= 1;
+    }    
+}
+
+function reset(){
+        playing = false;
+        userXPos = 7.7;
+        userZPos = 19;
+        g_keys[65] = false;
+        g_keys[68] = false;
+        g_keys[67] = false;
+        g_keys[69] = false;
+        g_keys[81] = false;
+        g_keys[83] = false;
+        g_keys[87] = false;
+        g_keys[82] = false;
+        var temp = randNum;
+
+        // Svo við fáum ekki sama völundarhús aftur.
+        while(randNum === temp)
+            randNum = (Math.floor(Math.random()*5)+1);
+
+        maze = readTextFile("maze" + randNum  + ".txt");
+        throughWallUse = 1;
+        minoRandomUse = 1;
+        collisionFlag = true;
+        xCollisionHorizontal = [];
+        zCollisionHorizontal = [];
+        xCollisionVertical = [];
+        zCollisionVertical = [];
+        minutes = 0;
+        seconds = 0;
+        millis = 0;
+        randMino = (Math.floor(Math.random()*5));
+        minoX = minoRandX[randMino];
+        minoZ = minoRandZ[randMino];
+
+}
+
 var render = function(){
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // staðsetja áhorfanda og meðhöndla músarhreyfingu
     var mv = lookAt( vec3(userXPos, 0.5, userZPos), vec3(userXPos+userXDir, 0.5, userZPos+userZDir), vec3(0.0, 1.0, 0.0 ) );
     document.getElementById("DistToEnd").innerHTML = "Fjarlægð til útgangs: " + Math.trunc( Math.sqrt( Math.pow((userXPos-exitX), 2) + Math.pow((userZPos - exitZ), 2) ) ) + " metrar";
-    document.getElementById("PlayerCoords").innerHTML = "Hnit spilara:       X: " + userXPos + "         Z: " + userZPos;
-    document.getElementById("MinoCoords").innerHTML = "Hnit Mínótárusar:       X: " + minoX + "         Z: " + minoZ;
+    document.getElementById("PlayerCoords").innerHTML = "Fjarlægð frá Mínótárus: " + Math.trunc(Math.sqrt( Math.pow((userXPos-minoX), 2) + Math.pow((userZPos - minoZ), 2))) + " metrar";
     document.getElementById("Timer").innerHTML = "Tími: " + minutes + ":" + seconds + ":" + millis;
     
     gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
@@ -512,65 +609,18 @@ var render = function(){
     gl.drawArrays( gl.TRIANGLES, numVertices, numVertices );
 
     drawMaze();
+    drawMino();
 
     minoMove();
 
     if(userZPos < 1.5){
-        playing = false;
-        alert("Þú vannst! Þú leystir völundarhús númer " + randNum + " á tímanum " + minutes + ":" + seconds + ":" + millis + ".")
-        userXPos = 7.7;
-        userZPos = 19;
-        g_keys[65] = false;
-        g_keys[68] = false;
-        g_keys[69] = false;
-        g_keys[81] = false;
-        g_keys[83] = false;
-        g_keys[87] = false;
-        var temp = randNum;
-
-        // Svo við fáum ekki sama völundarhús aftur.
-        while(randNum === temp)
-            randNum = (Math.floor(Math.random()*5)+1);
-
-        maze = readTextFile("maze" + randNum  + ".txt");
-        throughWallUse = 1;
-        collisionFlag = true;
-        xCollisionHorizontal = [];
-        zCollisionHorizontal = [];
-        xCollisionVertical = [];
-        zCollisionVertical = [];
-        minutes = 0;
-        seconds = 0;
-        millis = 0;
+        alert("Þú lifðir! Þú komst út á tímanum " + minutes + ":" + seconds + ":" + millis + ".")
+        reset();
     }
 
-    if( Math.trunc(Math.sqrt( Math.pow((userXPos-minoX), 2) + Math.pow((userZPos - minoZ), 2))) < 1 ) {
-        playing = false;
+    if( Math.trunc(Math.sqrt( Math.pow((userXPos-minoX), 2) + Math.pow((userZPos - minoZ), 2))) < 1.0 ) {
         alert("Mínótárus náði þér! Þú varst " + Math.trunc( Math.sqrt( Math.pow((userXPos-exitX), 2) + Math.pow((userZPos - exitZ), 2) ) ) + " metrum frá útgangnum.")
-        userXPos = 7.7;
-        userZPos = 19;
-        g_keys[65] = false;
-        g_keys[68] = false;
-        g_keys[69] = false;
-        g_keys[81] = false;
-        g_keys[83] = false;
-        g_keys[87] = false;
-        var temp = randNum;
-
-        // Svo við fáum ekki sama völundarhús aftur.
-        while(randNum === temp)
-            randNum = (Math.floor(Math.random()*5)+1);
-
-        maze = readTextFile("maze" + randNum  + ".txt");
-        throughWallUse = 1;
-        collisionFlag = true;
-        xCollisionHorizontal = [];
-        zCollisionHorizontal = [];
-        xCollisionVertical = [];
-        zCollisionVertical = [];
-        minutes = 0;
-        seconds = 0;
-        millis = 0;
+        reset();
 
     }
 
