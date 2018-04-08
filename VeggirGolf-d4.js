@@ -19,6 +19,19 @@ var throughWallUse = 1;
 var exitX;
 var exitZ;
 var randNum;
+var minoRandX = [-4.1, 13, 16.5, 19.5, -4.5, 19.5];
+var minoRandZ = [3.5, 6.8, 12.7,  3.7, 2.3, 1.45];
+var randMino;
+var playing = false;
+
+var minoX;
+var minoZ;
+var minoDirX = 0.01;
+var minoDirZ = 0.01;
+
+var minutes = 0;
+var seconds = 0;
+var millis = 0;
 
 
 var xCollisionVertical = [];
@@ -112,6 +125,11 @@ window.onload = function init() {
 
     canvas = document.getElementById( "gl-canvas" );
     randNum = (Math.floor(Math.random()*5)+1);
+
+    randMino = (Math.floor(Math.random()*5));
+    minoX = minoRandX[randMino];
+    minoZ = minoRandZ[randMino];
+
     console.log(randNum);
     if(randNum === 1){
         exitX = 19.5;
@@ -246,6 +264,7 @@ function handleKeydown() {
 
         // W
     if (g_keys[87]) {
+      playing = true;
       prevX = userXPos;
       prevZ = userZPos;
       if(!checkCollisionX(userXPos, userZPos) && !checkCollisionZ(userXPos, userZPos)){
@@ -266,6 +285,7 @@ function handleKeydown() {
     }
     // S
     if (g_keys[83]) {
+      playing = true;
       prevX = userXPos;
       prevZ = userZPos;
       if(!checkCollisionX(userXPos, userZPos) && !checkCollisionZ(userXPos, userZPos)){
@@ -287,6 +307,7 @@ function handleKeydown() {
     
     // Q
     if (g_keys[81]) {
+      playing = true;
       prevX = userXPos;
       prevZ = userZPos;
       if(!checkCollisionX(userXPos, userZPos) && !checkCollisionZ(userXPos, userZPos)){
@@ -300,6 +321,7 @@ function handleKeydown() {
     }
   // E
     if (g_keys[69]) {
+      playing = true;
       prevX = userXPos;
       prevZ = userZPos;
       if(!checkCollisionX(userXPos, userZPos) && !checkCollisionZ(userXPos, userZPos)){
@@ -365,6 +387,30 @@ function checkCollisionZ(x, z){
     return false;
 }
 
+function minoMove(){
+    // ef það er nóg pláss í x átt þá x += 1, ef það er nóg pláss í z átt þá z += 1.
+    var prevMinoX = minoX;
+    var prevMinoZ = minoZ;
+    minoX += minoDirX;
+    minoZ += minoDirZ;
+
+    for(var i = 0; i < zCollisionHorizontal.length; i = i+1){
+        if((Math.abs(minoZ - zCollisionHorizontal[i]) < 0.3 && minoX < xCollisionHorizontal[i] + 0.75 && minoX > xCollisionHorizontal[i] - 0.75)){
+            minoZ = prevMinoZ;
+            minoDirZ *= -1;
+    }
+    }
+
+    for(var i = 0; i < xCollisionVertical.length; i = i+1){
+        if( (Math.abs(minoX - xCollisionVertical[i]) < 0.3 && minoZ < zCollisionVertical[i] + 0.75 && minoZ > zCollisionVertical[i] - 0.75)){
+            minoX = prevMinoX;
+            minoDirX *= -1;
+    }
+
+    }
+
+}
+
 function drawMaze(){
 
     var mv = lookAt( vec3(userXPos, 0.5, userZPos), vec3(userXPos+userXDir, 0.5, userZPos+userZDir), vec3(0.0, 1.0, 0.0 ) );
@@ -373,6 +419,12 @@ function drawMaze(){
 
     var xOffset = -4.25;
     var yOffset = 0.0;
+
+    mv = mv1;
+    mv = mult( mv, translate( minoX, 0.0, minoZ) );
+    gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
+    gl.bindTexture( gl.TEXTURE_2D, texVegg );
+    gl.drawArrays( gl.TRIANGLES, 0, numVertices );
 
     for(var i = 0; i < maze.length; i = i+1){
         if(i % 70 === 0)
@@ -418,6 +470,24 @@ function drawMaze(){
     if(collisionFlag) collisionFlag = false;
 }
 
+function add() {
+    millis++;
+    if (millis >= 100) {
+        millis = 0;
+        seconds++;
+        if (seconds >= 60) {
+            seconds = 0;
+            minutes++;
+        }
+    }
+    timer();
+}
+function timer() {
+    t = setTimeout(add, 10);
+}
+
+timer();
+
 var render = function(){
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -425,6 +495,8 @@ var render = function(){
     var mv = lookAt( vec3(userXPos, 0.5, userZPos), vec3(userXPos+userXDir, 0.5, userZPos+userZDir), vec3(0.0, 1.0, 0.0 ) );
     document.getElementById("DistToEnd").innerHTML = "Fjarlægð til útgangs: " + Math.trunc( Math.sqrt( Math.pow((userXPos-exitX), 2) + Math.pow((userZPos - exitZ), 2) ) ) + " metrar";
     document.getElementById("PlayerCoords").innerHTML = "Hnit spilara:       X: " + userXPos + "         Z: " + userZPos;
+    document.getElementById("MinoCoords").innerHTML = "Hnit Mínótárusar:       X: " + minoX + "         Z: " + minoZ;
+    document.getElementById("Timer").innerHTML = "Tími: " + minutes + ":" + seconds + ":" + millis;
     
     gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
     var mv1 = mv;
@@ -441,8 +513,11 @@ var render = function(){
 
     drawMaze();
 
+    minoMove();
+
     if(userZPos < 1.5){
-        alert("Þú vannst!")
+        playing = false;
+        alert("Þú vannst! Þú leystir völundarhús númer " + randNum + " á tímanum " + minutes + ":" + seconds + ":" + millis + ".")
         userXPos = 7.7;
         userZPos = 19;
         g_keys[65] = false;
@@ -451,7 +526,52 @@ var render = function(){
         g_keys[81] = false;
         g_keys[83] = false;
         g_keys[87] = false;
-        randNum = (Math.floor(Math.random()*5)+1);
+        var temp = randNum;
+
+        // Svo við fáum ekki sama völundarhús aftur.
+        while(randNum === temp)
+            randNum = (Math.floor(Math.random()*5)+1);
+
+        maze = readTextFile("maze" + randNum  + ".txt");
+        throughWallUse = 1;
+        collisionFlag = true;
+        xCollisionHorizontal = [];
+        zCollisionHorizontal = [];
+        xCollisionVertical = [];
+        zCollisionVertical = [];
+        minutes = 0;
+        seconds = 0;
+        millis = 0;
+    }
+
+    if( Math.trunc(Math.sqrt( Math.pow((userXPos-minoX), 2) + Math.pow((userZPos - minoZ), 2))) < 1 ) {
+        playing = false;
+        alert("Mínótárus náði þér! Þú varst " + Math.trunc( Math.sqrt( Math.pow((userXPos-exitX), 2) + Math.pow((userZPos - exitZ), 2) ) ) + " metrum frá útgangnum.")
+        userXPos = 7.7;
+        userZPos = 19;
+        g_keys[65] = false;
+        g_keys[68] = false;
+        g_keys[69] = false;
+        g_keys[81] = false;
+        g_keys[83] = false;
+        g_keys[87] = false;
+        var temp = randNum;
+
+        // Svo við fáum ekki sama völundarhús aftur.
+        while(randNum === temp)
+            randNum = (Math.floor(Math.random()*5)+1);
+
+        maze = readTextFile("maze" + randNum  + ".txt");
+        throughWallUse = 1;
+        collisionFlag = true;
+        xCollisionHorizontal = [];
+        zCollisionHorizontal = [];
+        xCollisionVertical = [];
+        zCollisionVertical = [];
+        minutes = 0;
+        seconds = 0;
+        millis = 0;
+
     }
 
     requestAnimFrame(render);
