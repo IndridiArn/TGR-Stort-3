@@ -16,6 +16,10 @@ var prevX;
 var prevZ;
 var throughWall = false;
 var throughWallUse = 1;
+var exitX;
+var exitZ;
+var randNum;
+
 
 var xCollisionVertical = [];
 var zCollisionVertical = [];
@@ -33,8 +37,8 @@ var texGolf;
 var texLoft;
 
 // Breytur fyrir hreyfingu áhorfanda
-var userXPos = -2;                // Initial position of user
-var userZPos = 9.0;                //   in (x, z) coordinates, y is fixed
+var userXPos = 7.7;                // Initial position of user
+var userZPos = 19.0;                //   in (x, z) coordinates, y is fixed
 var userIncr = 0.1;                // Size of forward/backward step
 var userAngle = 270.0;             // Direction of the user in degrees
 var userXDir = 0.0;                // X-coordinate of heading
@@ -59,12 +63,12 @@ var vertices = [
     vec4( -0.75,  1.0, 0.0, 1.0 ),
     vec4( -0.75,  0.0, 0.0, 1.0 ),
 // Hnútar gólfsins (strax á eftir)
-    vec4( -5.0,  0.0, 10.0, 1.0 ),
-    vec4(  10.0,  0.0, 10.0, 1.0 ),
-    vec4(  10.0,  0.0,  0.0, 1.0 ),
-    vec4(  10.0,  0.0,  0.0, 1.0 ),
+    vec4( -5.0,  0.0, 20.0, 1.0 ),
+    vec4(  20.5,  0.0, 20.0, 1.0 ),
+    vec4(  20.5,  0.0,  0.0, 1.0 ),
+    vec4(  20.5,  0.0,  0.0, 1.0 ),
     vec4( -5.0,  0.0,  0.0, 1.0 ),
-    vec4( -5.0,  0.0, 10.0, 1.0 )
+    vec4( -5.0,  0.0, 20.0, 1.0 )
 ];
 
 // Mynsturhnit fyrir vegg
@@ -107,13 +111,36 @@ function readTextFile(file)
 window.onload = function init() {
 
     canvas = document.getElementById( "gl-canvas" );
+    randNum = (Math.floor(Math.random()*5)+1);
+    console.log(randNum);
+    if(randNum === 1){
+        exitX = 19.5;
+        exitZ = 1.45;
+    }
 
-    maze = readTextFile("maze4.txt");
-    console.log(maze);  
-    console.log(maze.length);
-    //maze = maze.replace(/(\r\n\t|\n|\r\t)/gm,"");
-    //console.log(maze);
-    //console.log(maze[9]);
+    if(randNum === 2){
+        exitX = 7.6;
+        exitZ = 1.45;
+    }
+
+    if(randNum === 3){
+        exitX = -4.4;
+        exitZ = 1.45;
+    }
+
+    if(randNum === 4){
+        exitX = 16.6;
+        exitZ = 1.45;
+    }
+
+    if(randNum === 5){
+        exitX = 7.7;
+        exitZ = 1.45;
+    }
+
+
+    maze = readTextFile("maze" + randNum  + ".txt");
+    console.log(maze);
     
     gl = WebGLUtils.setupWebGL( canvas );
     if ( !gl ) { alert( "WebGL isn't available" ); }
@@ -206,91 +233,6 @@ window.onload = function init() {
             origX = e.clientX;
         }
     } );
-    /*
-    // Event listener for keyboard
-     window.addEventListener("keydown", function(e){
-         switch( e.keyCode ) {
-            case 87:	// w
-                prevX = userXPos;
-                prevZ = userZPos;
-                if(!checkCollisionX(userXPos, userZPos) && !checkCollisionZ(userXPos, userZPos)){
-                    userXPos += userIncr * userXDir;
-                    userZPos += userIncr * userZDir;
-                }
-                if(checkCollisionX(userXPos, userZPos))
-                    userXPos = prevX
-                if(checkCollisionZ(userXPos, userZPos))
-                    userZPos = prevZ
-
-                console.log("Xpos: " + userXPos);
-                console.log("Zpos: " + userZPos);
-                break;
-            case 83:	// s
-                prevX = userXPos;
-                prevZ = userZPos;
-                if(!checkCollisionX(userXPos, userZPos) && !checkCollisionZ(userXPos, userZPos)){
-                    userXPos -= userIncr * userXDir;
-                    userZPos -= userIncr * userZDir;
-                }
-                if(checkCollisionX(userXPos, userZPos))
-                    userXPos = prevX
-                if(checkCollisionZ(userXPos, userZPos))
-                    userZPos = prevZ
-                console.log("Xpos: " + userXPos);
-                console.log("Zpos: " + userZPos);
-                break;
-            case 65:	// a
-                prevX = userXPos;
-                prevZ = userZPos;
-                if(!checkCollisionX(userXPos, userZPos) && !checkCollisionZ(userXPos, userZPos)){
-                    userXPos += userIncr * userZDir;
-                    userZPos -= userIncr * userXDir;
-                }
-                if(checkCollisionX(userXPos, userZPos))
-                    userXPos = prevX
-                if(checkCollisionZ(userXPos, userZPos))
-                    userZPos = prevZ
-                console.log("Xpos: " + userXPos);
-                console.log("Zpos: " + userZPos);
-                break;
-            case 68:	// d
-                prevX = userXPos;
-                prevZ = userZPos;
-                if(!checkCollisionX(userXPos, userZPos) && !checkCollisionZ(userXPos, userZPos)){
-                    userXPos -= userIncr * userZDir;
-                    userZPos += userIncr * userXDir;
-                }
-                if(checkCollisionX(userXPos, userZPos))
-                    userXPos = prevX
-                if(checkCollisionZ(userXPos, userZPos))
-                    userZPos = prevZ
-                console.log("Xpos: " + userXPos);
-                console.log("Zpos: " + userZPos);
-                break;
-            case 86:    // v
-                if(throughWallUse > 0){
-                    throughWall = true;
-                    throughWallUse = 0;
-                }
-                break;
-            case 81: //q 
-                userAngle -= 5;
-                userAngle %= 360.0;
-                userXDir = Math.cos( radians(userAngle) );
-                userZDir = Math.sin( radians(userAngle) );
-                origX = e.clientX;
-                break;
-            case 69: //e 
-                userAngle += 5;
-                userAngle %= 360.0;
-                userXDir = Math.cos( radians(userAngle) );
-                userZDir = Math.sin( radians(userAngle) );
-                origX = e.clientX;
-                break;
-        
-         }
-     }  );  
-     */
 
     render();
  
@@ -314,8 +256,6 @@ function handleKeydown() {
           userXPos = prevX
       if(checkCollisionZ(userXPos, userZPos))
           userZPos = prevZ
-      console.log("Xpos: " + userXPos);
-      console.log("Zpos: " + userZPos);
     }
     // A
     if (g_keys[65]) {
@@ -336,8 +276,6 @@ function handleKeydown() {
           userXPos = prevX
       if(checkCollisionZ(userXPos, userZPos))
           userZPos = prevZ
-      console.log("Xpos: " + userXPos);
-      console.log("Zpos: " + userZPos);
     }
     // D
     if (g_keys[68]) {
@@ -359,9 +297,6 @@ function handleKeydown() {
           userXPos = prevX
       if(checkCollisionZ(userXPos, userZPos))
           userZPos = prevZ
-      console.log("Xpos: " + userXPos);
-      console.log("Zpos: " + userZPos);
-      
     }
   // E
     if (g_keys[69]) {
@@ -374,16 +309,14 @@ function handleKeydown() {
       if(checkCollisionX(userXPos, userZPos))
           userXPos = prevX
       if(checkCollisionZ(userXPos, userZPos))
-          userZPos = prevZ
-      console.log("Xpos: " + userXPos);
-      console.log("Zpos: " + userZPos);
-      
+          userZPos = prevZ      
     }
     // F
     if (g_keys[70]) {
       if(throughWallUse > 0){
           throughWall = true;
           throughWallUse = 0;
+          document.getElementById("ThroughWall").innerHTML = "Í gegnum vegg: 0";
       }
     }
     setTimeout(handleKeydown, 10);
@@ -425,7 +358,7 @@ function checkCollisionZ(x, z){
             if(throughWall === false)
                 return true;
             else 
-                setTimeout(function(){ throughWall = false }, 1500);
+                setTimeout(function(){ throughWall = false }, 750);
     }
     }
 
@@ -442,9 +375,9 @@ function drawMaze(){
     var yOffset = 0.0;
 
     for(var i = 0; i < maze.length; i = i+1){
-        if(i === 42 || i === 84 || i === 126 || i === 147)
+        if(i % 70 === 0)
             yOffset = yOffset + 1.5;
-        if(i % 21 === 0 && i > 1)
+        if(i % 35 === 0 && i > 1)
             xOffset = -4.25;
 
         if(maze[i] === "|"){
@@ -490,6 +423,8 @@ var render = function(){
 
     // staðsetja áhorfanda og meðhöndla músarhreyfingu
     var mv = lookAt( vec3(userXPos, 0.5, userZPos), vec3(userXPos+userXDir, 0.5, userZPos+userZDir), vec3(0.0, 1.0, 0.0 ) );
+    document.getElementById("DistToEnd").innerHTML = "Fjarlægð til útgangs: " + Math.trunc( Math.sqrt( Math.pow((userXPos-exitX), 2) + Math.pow((userZPos - exitZ), 2) ) ) + " metrar";
+    document.getElementById("PlayerCoords").innerHTML = "Hnit spilara:       X: " + userXPos + "         Z: " + userZPos;
     
     gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
     var mv1 = mv;
@@ -506,16 +441,17 @@ var render = function(){
 
     drawMaze();
 
-    if(userZPos < -0.5){
+    if(userZPos < 1.5){
         alert("Þú vannst!")
-        userXPos = -2;
-        userZPos = 9;
+        userXPos = 7.7;
+        userZPos = 19;
         g_keys[65] = false;
         g_keys[68] = false;
         g_keys[69] = false;
         g_keys[81] = false;
         g_keys[83] = false;
         g_keys[87] = false;
+        randNum = (Math.floor(Math.random()*5)+1);
     }
 
     requestAnimFrame(render);
